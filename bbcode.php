@@ -4,7 +4,7 @@
 	BBCode to HTML conversion for PHP
 
 	Michael Rydén <zynex@zoik.se>
-	https://github.com/zynexiz
+	https://github.com/zynexiz/bbcode2html
 
 	This is public domain software. Anyone is free to copy, modify, publish,
 	use, compile, sell, or distribute this software, either in source code
