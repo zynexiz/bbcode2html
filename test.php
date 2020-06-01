@@ -18,7 +18,9 @@ $table = "TR and TH outside table tag: [tr][th]Firstname[/th][th]Lastname[/th][t
 "[table width=100% bcolor=gray color=white]".
 "[tr][th]Firstname[/th][th]Lastname[/th][th]Age[/th][/tr]".
 "[tr][td]Jill[/td][td]Smith[/td][td]50[/td][/tr]".
-"[tr][td]Eve[/td][td]Jackson[/td][td]94[/td][/tr][/table]";
+"[tr][td]Eve[/td][td]Jackson[/td][td]94[/td][/tr][/table][br][br]".
+"code tag alias test:[br]".
+"[code]Code test[/code]";
 
 echo bbcode2html("[font size=30px color=red]Test string: [/font][br][br]").bbcode2html($test1);
 echo bbcode2html("[br][br][font size=30px color=red]No BBCode: [/font][br][br]").bbcode2html($nocode);
