@@ -1,6 +1,6 @@
 <?php
 
-require_once('includes/bbcode.php');
+require_once('bbcode.php');
 
 $test1 = "BBcode test: [b arg=1]bold tag with argument (arg striped)[/b], [br]font tag: [font size=35px color=#FF4400]BIG text[/font]. [i]Italic text[/i][br]".
 "Nested B and I: [i]Italic text [b]Italic bold text[/b] more italic text[/i][br]".
