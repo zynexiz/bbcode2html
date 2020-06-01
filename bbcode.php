@@ -2,6 +2,7 @@
 /******************************************************************************
 
 	BBCode to HTML conversion for PHP
+	Version 1.0
 
 	Michael Rydén <zynex@zoik.se>
 	https://github.com/zynexiz/bbcode2html
@@ -14,14 +15,16 @@
 ******************************************************************************/
 
 class BBCode {
-	// Tag aliases.  Item on left translates to item on right.
+	// Tag aliases. Define aliases here if two tags chould generate same HTML
+	// output insted of defining the tag twice with different names.
 	const TAG_ALIAS = [
 		'code' => 'pre',
 		'quote' => 'blockquote',
 		'*' => 'li',
 	];
 
-	// Alias for tag arguments, fx. size = font-size
+	// Alias for tag arguments. Define what tag arguments should the transalted
+	// to, fx. argument bcolor is converted to background-color.
 	const ARG_ALIAS = [
 		'size'=>'font-size',
 		'bcolor'=>'background-color',
@@ -32,12 +35,17 @@ class BBCode {
 					arguments to the html tag. {PARAM} can be passed as
 					[tag=PARAM], or [tag]PARAM[/tag]. {ARG} needs the arg
 					parameter to define what arguments are allowed.
-		end_tag		(optional) The closing tag for the html code.
+
+		end_tag		The closing tag for the html code. Optional if no closing
+					tag is required for HTML code (fx <br>).
+
 		arg			(optional) Comma-separated values of what arguments are
 					passed. Must contain the key itself and {ARG}. Fx.
 					"color:{ARG};" will pass [tag color=red] as "color:red;" and
 					"width={ARG}" will pass [tag width=25px] as width=25px as
-					argument to start_tag.
+					argument to {PARAM} in start_tag. The kay can be whatever
+					you define it to be.
+
 		parent		(optional) Comma-separated values of parent tags the
 					tag must be inside.
 	*/
@@ -56,6 +64,7 @@ class BBCode {
 		'tr'=>		array('start_tag'=>'<tr>', 'end_tag'=>'</tr>', 'parent'=>'table'),
 		'td'=>		array('start_tag'=>'<td>', 'end_tag'=>'</td>', 'parent'=>'tr'),
 		'th'=>		array('start_tag'=>'<th>', 'end_tag'=>'</th>', 'parent'=>'tr'),
+		'pre'=>		array('start_tag'=>'<pre>', 'end_tag'=>'</pre>'),
 	);
 
 
@@ -66,7 +75,7 @@ class BBCode {
 		// get tag name
 		$inner = ($input[1] === '/') ? substr($input, 2, -1) : substr($input, 1, -1);
 
-		// oneliner to burst inner by spaces, then burst each of those by equals signs
+		// extract the arguments
 		$params = array_map(function(&$a) { return explode('=', $a, 2); }, explode(' ', $inner));
 
 		// first "param" is special - it's the tag name and (optionally) the default arg
@@ -90,12 +99,14 @@ class BBCode {
 			$v = isset($param[1]) ? $param[1] : '';
 			$args[$k] = $v;
 		}
+
+		// is the tag a closing tag?
 		$args['end_tag'] = ($input[1] === '/') ? true : false;
 
 		return [ 'name' => $name, 'args' => $args ];
 	}
 
-	// helper function: normalize HTML entities, with newline handling
+	// normalize HTML entities, with newline handling
 	static private function encode($input) : string	{
 		// break substring into individual unicode chars
 		$characters = preg_split('//u', $input, null, PREG_SPLIT_NO_EMPTY);
@@ -157,13 +168,14 @@ class BBCode {
 		for ($match_idx = 0; $match_idx < $match_count; $match_idx ++) {
 			list($match, $offset) = $matches[0][$match_idx];
 
-			// pick up chars between tags and HTML-encode them and advance
-			// input_ptr to just past the current tag
+			// pick up text between tags and HTML-encode them and advance
+			// input_ptr past the current tag
 			$output .= self::encode(substr($input, $input_ptr, $offset - $input_ptr));
 			$input_ptr = $offset + strlen($match);
 
 			list('name' => $name, 'args' => $args) = self::decode_tag($match);
 
+			// check is this was a closing tag
 			if ($args['end_tag']) {
 				// search the tag stack and see if the opening tag was pushed into it
 				if (array_search($name, $stack, TRUE) === FALSE) {
@@ -193,9 +205,11 @@ class BBCode {
 					$arg_count = count($args) - 1;
 					if ($arg_count > 0 && isset(self::BBCode[$name]['arg'])) {
 						$keys = array_keys($args);
-						// look thru the valid arguments and match against tag args
+						// look thru the valid arguments and match against tag arguments
 						for ($i = 0; $i < $arg_count; $i++) {
+							// match everything between commas
 							if (preg_match("/($keys[$i])[^,]+/",self::BBCode[$name]['arg'],$found) > 0) {
+								// replace the arument command with an alias if defined
 								if (isset(self::ARG_ALIAS[$keys[$i]])) {
 									$found[0] = str_replace($keys[$i],self::ARG_ALIAS[$keys[$i]],$found[0]);
 								}
@@ -203,6 +217,7 @@ class BBCode {
 							}
 						}
 
+						// replace the {ARG} string in the start_tag with the argument content
 						$start_tag = str_replace("{ARG}",$arg_string,$start_tag);
 					}
 
@@ -211,12 +226,13 @@ class BBCode {
 						// look for end tag and grab content if found
 						$content = null;
 						$i = $match_idx + 1;
+
 						if ($i < $match_count) {
 							list($search_match, $search_offset) = $matches[0][$i];
 							$search_tag = self::decode_tag($search_match);
 
-							/* if next tag is an end tag, and match the previous tag, grab the content
-							if no end tag found, but html code requires a closing tag, add it
+							/* if next tag is an end tag, and match the previous tag, grab the content.
+							If no end tag found, but html code requires a closing tag, add it
 							and use {PARAM} as the content and remove it from the stack */
 							if ($search_tag['args']['end_tag'] && $search_tag['name'] === $name) {
 								$content = substr($input, $input_ptr, $search_offset - $input_ptr);
@@ -231,12 +247,14 @@ class BBCode {
 							}
 						}
 
+						// replace {PARAM} with the content in the start_tag
 						$param = (isset($args['default'])) ? $args['default'] : $content;
 						$start_tag = str_replace("{PARAM}",$param,$start_tag);
 					}
 
 					$output = $output . $start_tag;
 				} else {
+					// if no valid tags found, just encode it
 					$output .= self::encode($match);
 					unset($parent_tag);
 				}
