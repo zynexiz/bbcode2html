@@ -2,7 +2,6 @@
 /******************************************************************************
 
 	BBCode to HTML conversion for PHP
-	Version 1.0
 
 	Michael Rydén <zynex@zoik.se>
 	https://github.com/zynexiz/bbcode2html
@@ -72,20 +71,15 @@ class BBCode {
 	//  convert to lowercase and check against the alias list
 	//  returns a named array with details about the tag
 	static private function decode_tag($input) : array {
-		// get tag name
+		// get tag name and extract the arguments
 		$inner = ($input[1] === '/') ? substr($input, 2, -1) : substr($input, 1, -1);
-
-		// extract the arguments
 		$params = array_map(function(&$a) { return explode('=', $a, 2); }, explode(' ', $inner));
 
 		// first "param" is special - it's the tag name and (optionally) the default arg
 		$first = array_shift($params);
 
-		// use tag alias if defined
-		$name = strtolower($first[0]);
-		if (isset(self::TAG_ALIAS[$name])) {
-			$name = self::TAG_ALIAS[$name];
-		}
+		// make tag lower case and check is tag alias if defined
+		$name = strtolower(self::TAG_ALIAS[$first[0]] ?? $first[0]);
 
 		// "default" (unnamed) argument
 		$args = null;
@@ -95,9 +89,7 @@ class BBCode {
 
 		// put the rest of the args in the list
 		foreach ($params as &$param) {
-			$k = isset($param[0]) ? strtolower($param[0]) : '';
-			$v = isset($param[1]) ? $param[1] : '';
-			$args[$k] = $v;
+			$args[strtolower($param[0]) ?? ''] = $param[1] ?? '';
 		}
 
 		// is the tag a closing tag?
@@ -106,51 +98,12 @@ class BBCode {
 		return [ 'name' => $name, 'args' => $args ];
 	}
 
-	// normalize HTML entities, with newline handling
+	// normalize HTML entities
 	static private function encode($input) : string	{
-		// break substring into individual unicode chars
-		$characters = preg_split('//u', $input, null, PREG_SPLIT_NO_EMPTY);
-
-		// append each one-at-a-time to create output
-		$lf = 0;
-		$output = '';
-		foreach ($characters as &$ch)
-		{
-			if ($ch === "\n") {
-				$lf ++;
-			} elseif ($ch === "\r") {
-				continue;
-			} else {
-				if ($lf === 1) {
-					$output .= "\n<br>";
-					$lf = 0;
-				} elseif ($lf > 1) {
-					$output .= "\n\n<p>";
-					$lf = 0;
-				}
-
-				if ($ch === '<') {
-					$output .= '&lt;';
-				} elseif ($ch === '>') {
-					$output .= '&gt;';
-				} elseif ($ch === '&') {
-					$output .= '&amp;';
-				} elseif ($ch === "\u{00A0}") {
-					$output .= '&nbsp;';
-				} else {
-					$output .= $ch;
-				}
-			}
-		}
-
-		// trailing linefeed handle
-		if ($lf === 1) {
-			$output .= "\n<br>";
-		} elseif ($lf > 1) {
-			$output .= "\n\n<p>";
-		}
-
-		return $output;
+		return str_replace(
+			["&","<",">"," ","\n","\r"],
+			["&amp;","&lt;","&gt;","&nbsp;","<br>",""],
+			$input);
 	}
 
 	static public function bbcode2html($input) : string {
