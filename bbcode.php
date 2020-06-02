@@ -67,9 +67,8 @@ class BBCode {
 	);
 
 
-	// helper function: normalize a potential "tag"
-	//  convert to lowercase and check against the alias list
-	//  returns a named array with details about the tag
+	// decode a potential "tag" and check against the alias list
+	// returns a array with tag name and it's arguments
 	static private function decode_tag($input) : array {
 		// get tag name and extract the arguments
 		$inner = ($input[1] === '/') ? substr($input, 2, -1) : substr($input, 1, -1);
