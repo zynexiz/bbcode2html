@@ -10,7 +10,10 @@
 	use, compile, sell, or distribute this software, either in source code
 	form or as a compiled binary, for any purpose, commercial or
 	non-commercial,	and by any means.
-
+	
+	If you are using this code in a commercial application, consider donating
+	to my project to support the work.
+	
 ******************************************************************************/
 
 class BBCode {
